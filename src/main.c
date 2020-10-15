@@ -9,6 +9,7 @@
 
 #define  TRM_NDC_ZERO_TO_ONE
 #include "tr_math.h"
+#include "mestack.h"
 
 #define WEIGHTS_PER_VERTEX   4
 #define MAX_BONE_NAME_LENGTH 64
@@ -29,6 +30,11 @@ typedef struct Bone
     char name[MAX_BONE_NAME_LENGTH];
     mat4 offset_matrix;
 } Bone;
+
+typedef struct Node
+{
+    uint32_t bone_index;
+} Node;
 
 vec3 aiVector3D_to_vec3(struct aiVector3D vert)
 {
@@ -63,6 +69,30 @@ mat4 aiMatrix4x4_to_mat4(struct aiMatrix4x4 m)
     result.d[3][3] = m.d4;
 
     return result;
+}
+
+void build_skeleton(struct aiNode * ai_node, Node * skeleton_nodes, uint32_t current_node_index,
+		    Bone * bones, uint32_t num_bones)
+{
+    MeStack children = mes_create(sizeof(struct aiNode *));
+    for (uint32_t i = 0; i < ai_node ->mNumChildren; ++i) {
+	mes_push( children, &(ai_node->mChildren[i]) );	    
+    }
+    while ( !mes_empty(children) ) {
+	struct aiNode * ai_node;
+	mes_pop(children, &ai_node);
+	/* Search the bones array for matching name of current node */
+	uint32_t bone_index = 0;
+	for ( ; bone_index < num_bones; ++bone_index) {
+	    if ( !strcmp(ai_node->mName.data, bones[bone_index].name) ) {
+		break;
+	    }
+	}
+	Node node = { 0 };
+	node.bone_index = bone_index;
+	skeleton_nodes[current_node_index++] = node;
+	build_skeleton( ai_node, skeleton_nodes, current_node_index, bones, num_bones ); 
+    }
 }
 
 int main(int argc, char ** argv)
@@ -155,6 +185,21 @@ int main(int argc, char ** argv)
     free(bone_indices);
     free(bone_weights);
 
+    /* Skeleton */
+    /* Find the "Armature" Node, as it contains the bone-hierarchy */
+    struct aiNode * ai_root = scene->mRootNode;
+    struct aiNode * ai_current = NULL;
+    for (uint32_t i = 0; i < ai_root->mNumChildren; ++i) {
+	ai_current = ai_root->mChildren[i];
+	if ( !strcmp("Armature", ai_current->mName.data) ) {
+	    break;
+	}
+    }
+    assert(ai_current != NULL);
+    Node * skeleton_nodes = (Node*)malloc(num_bones*sizeof(Node));
+    uint32_t current_node_index = 0;
+    build_skeleton( ai_current, skeleton_nodes, current_node_index, bones, num_bones );
+    
     /* Index Data for vertices */
     uint16_t * indices = (uint16_t*)malloc(num_indices * sizeof(uint16_t));
     uint16_t * current_index = indices;

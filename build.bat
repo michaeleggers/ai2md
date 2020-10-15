@@ -25,7 +25,7 @@ REM gcc %flags_debug%   ..\src\main.c -o gcc_dbg_main
 REM gcc %flags_release% ..\src\main.c -o gcc_release_main
 
 REM clang-cl %clang_flags_debug%  ..\src\main.c -o clang_dbg_main.exe
-clang-cl %clang_flags_debug_easy% ..\src\main.c ..\src\tr_math.c -o clang_dbg_easy_main.exe -I%assimp_inc% /link %assimp_lib%\debug\assimp-vc141-mtd.lib
+clang-cl %clang_flags_debug_easy% ..\src\main.c ..\src\tr_math.c ..\src\mestack.c -o clang_dbg_easy_main.exe -I%assimp_inc% /link %assimp_lib%\debug\assimp-vc141-mtd.lib
 REM clang-cl %clang_flags_release% ..\src\main.c -o clang_rel_main.exe
 
 REM tcc %tcc_flags_debug% ..\src\main.c -o tcc_dbg_main.exe
