@@ -18,7 +18,7 @@ MeStack mes_create(uint32_t elem_size)
     MeStack stack;
     stack = (MeStack)malloc(sizeof(*stack));
     stack->elem_size = elem_size;
-    stack->data_size = 10 * elem_size;
+    stack->data_size = 100 * elem_size;
     stack->data_free = 0;
     stack->data = malloc(stack->data_size);
 

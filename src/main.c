@@ -34,6 +34,8 @@ typedef struct Bone
 typedef struct Node
 {
     uint32_t bone_index;
+    int      parent_index;
+    char     name[MAX_BONE_NAME_LENGTH];
 } Node;
 
 vec3 aiVector3D_to_vec3(struct aiVector3D vert)
@@ -71,13 +73,14 @@ mat4 aiMatrix4x4_to_mat4(struct aiMatrix4x4 m)
     return result;
 }
 
-void build_skeleton(struct aiNode * ai_node, Node * skeleton_nodes, uint32_t current_node_index,
+void build_skeleton(struct aiNode * ai_node, Node * skeleton_nodes, int * current_node_index, int * current_depth,
 		    Bone * bones, uint32_t num_bones)
 {
     MeStack children = mes_create(sizeof(struct aiNode *));
     for (uint32_t i = 0; i < ai_node ->mNumChildren; ++i) {
 	mes_push( children, &(ai_node->mChildren[i]) );	    
     }
+    int offset = *current_node_index;
     while ( !mes_empty(children) ) {
 	struct aiNode * ai_node;
 	mes_pop(children, &ai_node);
@@ -88,11 +91,25 @@ void build_skeleton(struct aiNode * ai_node, Node * skeleton_nodes, uint32_t cur
 		break;
 	    }
 	}
-	Node node = { 0 };
-	node.bone_index = bone_index;
-	skeleton_nodes[current_node_index++] = node;
-	build_skeleton( ai_node, skeleton_nodes, current_node_index, bones, num_bones ); 
+	if (bone_index < num_bones) {
+	    Node node = { .bone_index = 0, .parent_index = -1 };
+	    node.bone_index = bone_index;
+	    if ( *current_depth == 1 ) {
+		node.parent_index = 0 + offset - 1;
+	    }
+	    else if ( *current_depth == 0 ) {
+		node.parent_index = -1;
+	    }
+	    else {
+		node.parent_index = offset - 1;
+	    }
+	    strcpy( node.name, bones[bone_index].name );
+	    skeleton_nodes[ (*current_node_index)++ ] = node;
+	}
+	(*current_depth)++;
+	build_skeleton( ai_node, skeleton_nodes, current_node_index, current_depth, bones, num_bones );
     }
+    (*current_depth)--;
 }
 
 int main(int argc, char ** argv)
@@ -197,8 +214,9 @@ int main(int argc, char ** argv)
     }
     assert(ai_current != NULL);
     Node * skeleton_nodes = (Node*)malloc(num_bones*sizeof(Node));
-    uint32_t current_node_index = 0;
-    build_skeleton( ai_current, skeleton_nodes, current_node_index, bones, num_bones );
+    int current_node_index = 0;
+    int current_depth = 0;
+    build_skeleton( ai_current, skeleton_nodes, &current_node_index, &current_depth, bones, num_bones );
     
     /* Index Data for vertices */
     uint16_t * indices = (uint16_t*)malloc(num_indices * sizeof(uint16_t));
