@@ -94,10 +94,7 @@ void build_skeleton(struct aiNode * ai_node, Node * skeleton_nodes, int * curren
 	if (bone_index < num_bones) {
 	    Node node = { .bone_index = 0, .parent_index = -1 };
 	    node.bone_index = bone_index;
-	    if ( *current_depth == 1 ) {
-		node.parent_index = 0 + offset - 1;
-	    }
-	    else if ( *current_depth == 0 ) {
+	    if ( *current_depth == 0 ) {
 		node.parent_index = -1;
 	    }
 	    else {
