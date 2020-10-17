@@ -76,7 +76,7 @@ mat4 aiMatrix4x4_to_mat4(struct aiMatrix4x4 m)
 void build_skeleton(struct aiNode * ai_node, Node * skeleton_nodes, int * current_node_index, int * current_depth,
 		    Bone * bones, uint32_t num_bones)
 {
-    MeStack children = mes_create(sizeof(struct aiNode *));
+    MeStack children = mes_create(sizeof(struct aiNode *), num_bones);
     for (uint32_t i = 0; i < ai_node ->mNumChildren; ++i) {
 	mes_push( children, &(ai_node->mChildren[i]) );	    
     }
@@ -107,6 +107,7 @@ void build_skeleton(struct aiNode * ai_node, Node * skeleton_nodes, int * curren
 	build_skeleton( ai_node, skeleton_nodes, current_node_index, current_depth, bones, num_bones );
     }
     (*current_depth)--;
+    mes_destroy(&children);
 }
 
 int main(int argc, char ** argv)
@@ -237,6 +238,7 @@ int main(int argc, char ** argv)
     fwrite( verts, sizeof(*verts), num_verts, filep );
     fwrite( indices, sizeof(*indices), num_indices, filep );
     fwrite( bones, sizeof(*bones), num_bones, filep );
+    fwrite( skeleton_nodes, sizeof(*skeleton_nodes), num_bones, filep );
     fclose( filep );
     
     aiReleaseImport(scene);

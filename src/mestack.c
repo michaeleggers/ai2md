@@ -13,12 +13,12 @@ struct MeStack
     uint32_t data_free;
 };
 
-MeStack mes_create(uint32_t elem_size)
+MeStack mes_create(uint32_t elem_size, uint32_t elem_count)
 {
     MeStack stack;
     stack = (MeStack)malloc(sizeof(*stack));
     stack->elem_size = elem_size;
-    stack->data_size = 100 * elem_size;
+    stack->data_size = elem_count * elem_size;
     stack->data_free = 0;
     stack->data = malloc(stack->data_size);
 
