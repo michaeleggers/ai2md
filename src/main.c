@@ -115,10 +115,10 @@ int main(int argc, char ** argv)
     assert(argc > 1);
     char * filename = argv[1];
     struct aiScene const * scene = aiImportFile(filename,
-				   aiProcess_Triangulate           |
-				   aiProcess_JoinIdenticalVertices |
-				   aiProcess_MakeLeftHanded        |
-				   aiProcess_FlipWindingOrder);
+						aiProcess_Triangulate |
+						aiProcess_JoinIdenticalVertices);
+    //aiProcess_MakeLeftHanded |
+    //aiProcess_FlipWindingOrder);
     if (NULL == scene) {
 	printf( "%s\n", aiGetErrorString() );
 	return -1;
