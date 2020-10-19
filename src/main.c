@@ -29,6 +29,7 @@ typedef struct Bone
 {
     char name[MAX_BONE_NAME_LENGTH];
     mat4 offset_matrix;
+    uint32_t num_weights;
 } Bone;
 
 typedef struct Node
@@ -85,26 +86,31 @@ void build_skeleton(struct aiNode * ai_node, Node * skeleton_nodes, int * curren
 	struct aiNode * ai_node;
 	mes_pop(children, &ai_node);
 	/* Search the bones array for matching name of current node */
+	int bone_found = 0;
 	uint32_t bone_index = 0;
-	for ( ; bone_index < num_bones; ++bone_index) {
+	for (; bone_index < num_bones; ++bone_index) {
 	    if ( !strcmp(ai_node->mName.data, bones[bone_index].name) ) {
+		bone_found = 1;
 		break;
 	    }
 	}
-	if (bone_index < num_bones) {
-	    Node node = { .bone_index = 0, .parent_index = -1 };
-	    node.bone_index = bone_index;
-	    if ( *current_depth == 0 ) {
-		node.parent_index = -1;
+	if (bone_found) {
+	    if (bones[bone_index].num_weights > 0) {
+		Node node = { .bone_index = 0, .parent_index = -1 };
+		node.bone_index = bone_index;
+		if ( *current_depth == 0 ) {
+		    node.parent_index = -1;
+		}
+		else {
+		    node.parent_index = offset - 1;
+		}
+		strcpy( node.name, bones[bone_index].name );
+		skeleton_nodes[ (*current_node_index)++ ] = node;
+
+		(*current_depth)++;
+		build_skeleton( ai_node, skeleton_nodes, current_node_index, current_depth, bones, num_bones );
 	    }
-	    else {
-		node.parent_index = offset - 1;
-	    }
-	    strcpy( node.name, bones[bone_index].name );
-	    skeleton_nodes[ (*current_node_index)++ ] = node;
 	}
-	(*current_depth)++;
-	build_skeleton( ai_node, skeleton_nodes, current_node_index, current_depth, bones, num_bones );
     }
     (*current_depth)--;
     mes_destroy(&children);
@@ -173,6 +179,7 @@ int main(int argc, char ** argv)
 	struct aiMatrix4x4 offset_matrix = bone->mOffsetMatrix;
 	struct aiString bone_name = bone->mName;
 	bones[i].offset_matrix = aiMatrix4x4_to_mat4(offset_matrix);
+	bones[i].num_weights = bone->mNumWeights;
 	strcpy(bones[i].name, bone_name.data);
 	uint32_t num_weights = bone->mNumWeights;
 	for (uint32_t j = 0; j < num_weights; ++j) {
