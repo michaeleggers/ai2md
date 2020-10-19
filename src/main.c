@@ -75,7 +75,7 @@ mat4 aiMatrix4x4_to_mat4(struct aiMatrix4x4 m)
 }
 
 void build_skeleton(struct aiNode * ai_node, Node * skeleton_nodes, int * current_node_index, int * current_depth,
-		    Bone * bones, uint32_t num_bones)
+		    Bone * bones, uint32_t num_bones, uint32_t * out_bones_added)
 {
     MeStack children = mes_create(sizeof(struct aiNode *), num_bones);
     for (uint32_t i = 0; i < ai_node ->mNumChildren; ++i) {
@@ -95,7 +95,7 @@ void build_skeleton(struct aiNode * ai_node, Node * skeleton_nodes, int * curren
 	    }
 	}
 	if (bone_found) {
-	    if (bones[bone_index].num_weights > 0) {
+	    if (bones[bone_index].num_weights > 0) { // only add bone and go deeper in hierarchy when bone actually affects any vertices
 		Node node = { .bone_index = 0, .parent_index = -1 };
 		node.bone_index = bone_index;
 		if ( *current_depth == 0 ) {
@@ -106,9 +106,10 @@ void build_skeleton(struct aiNode * ai_node, Node * skeleton_nodes, int * curren
 		}
 		strcpy( node.name, bones[bone_index].name );
 		skeleton_nodes[ (*current_node_index)++ ] = node;
-
+		(*out_bones_added)++;
+		
 		(*current_depth)++;
-		build_skeleton( ai_node, skeleton_nodes, current_node_index, current_depth, bones, num_bones );
+		build_skeleton( ai_node, skeleton_nodes, current_node_index, current_depth, bones, num_bones, out_bones_added );
 	    }
 	}
     }
@@ -221,7 +222,8 @@ int main(int argc, char ** argv)
     Node * skeleton_nodes = (Node*)malloc(num_bones*sizeof(Node));
     int current_node_index = 0;
     int current_depth = 0;
-    build_skeleton( ai_current, skeleton_nodes, &current_node_index, &current_depth, bones, num_bones );
+    uint32_t num_bones_skeleton = 0; // will contain the actual number of bones that make it into the skeleton after calling build_skeleton
+    build_skeleton( ai_current, skeleton_nodes, &current_node_index, &current_depth, bones, num_bones, &num_bones_skeleton );
     
     /* Index Data for vertices */
     uint16_t * indices = (uint16_t*)malloc(num_indices * sizeof(uint16_t));
@@ -245,7 +247,7 @@ int main(int argc, char ** argv)
     fwrite( verts, sizeof(*verts), num_verts, filep );
     fwrite( indices, sizeof(*indices), num_indices, filep );
     fwrite( bones, sizeof(*bones), num_bones, filep );
-    fwrite( skeleton_nodes, sizeof(*skeleton_nodes), num_bones, filep );
+    fwrite( skeleton_nodes, sizeof(*skeleton_nodes), num_bones_skeleton, filep );
     fclose( filep );
     
     aiReleaseImport(scene);
